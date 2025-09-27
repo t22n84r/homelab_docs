@@ -1,0 +1,7 @@
+root@monitoring:~# cat /etc/prometheus/pve.yml 
+default:
+  user: ''
+  token_name: ''
+  token_value: ''
+  verify_ssl: false
+  timeout: 10

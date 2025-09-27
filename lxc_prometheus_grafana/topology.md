@@ -1,4 +1,3 @@
-flowchart LR
   PVE[Proxmox Host<br/>(B550 + 5900X)]
   LXC[Monitoring LXC (Debian)]
   Prom[Prometheus :9090]

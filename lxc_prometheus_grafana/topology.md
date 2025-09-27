@@ -14,10 +14,10 @@
   
   pveExp[PVE exporter :9221] <br/>
 
-  PVE --> LXC
-  LXC --> Prom
-  LXC --> AM
-  LXC --> Gf
-  Prom --> nodeExp
-  Prom --> smart
-  Prom --> pveExp
+  PVE --> LXC <br/>
+  LXC --> Prom <br/>
+      --> AM
+      --> Gf
+  Prom --> nodeExp <br/>
+        --> smart
+        --> pveExp

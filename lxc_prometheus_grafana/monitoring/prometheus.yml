@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['127.0.0.1:9093']
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  # Proxmox host OS + sensors (node_exporter on the HOST)
+  - job_name: 'pve-node'
+    static_configs:
+      - targets: ['<PVE_IP>:9100']
+
+  # Proxmox API metrics (pve_exporter inside THIS LXC)
+  - job_name: 'pve'
+    static_configs:
+      - targets: ['127.0.0.1:9221']
+
+  # (Optional) SMART exporter on the HOST  ^`^t only if you run one on :9633
+  # With the textfile collector method you don't need this.
+  # - job_name: 'smartmon'
+  #   static_configs:
+  #     - targets: ['<PVE_HOST_IP>:9633']

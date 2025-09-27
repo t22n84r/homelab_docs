@@ -1,0 +1,23 @@
+groups:
+- name: host-basics
+  rules:
+  - alert: NodeDown
+    expr: up{job="pve-node"} == 0
+    for: 2m
+    labels: {severity: critical}
+    annotations:
+      summary: "Node exporter is down on PVE host"
+
+  - alert: HighCPUTemp
+    expr: max(node_hwmon_temp_celsius) > 85
+    for: 2m
+    labels: {severity: warning}
+    annotations:
+      summary: "High board/CPU temperature (>{{ $value }} °C)"
+
+  - alert: DiskUnhealthy
+    expr: smart_device_healthy == 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "SMART reports disk {{ $labels.device }} unhealthy"

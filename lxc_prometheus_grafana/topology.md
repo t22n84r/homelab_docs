@@ -1,4 +1,4 @@
-  PVE[Proxmox Host<br/>(B550 + 5900X)];
+  PVE[Proxmox Host<br/>(B550 + 5900X)] <br/>
   LXC[Monitoring LXC (Debian)]
   Prom[Prometheus :9090]
   AM[Alertmanager :9093]

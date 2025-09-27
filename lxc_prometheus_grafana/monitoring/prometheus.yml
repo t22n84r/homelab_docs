@@ -21,7 +21,7 @@ scrape_configs:
     static_configs:
       - targets: ['127.0.0.1:9221']
 
-  # (Optional) SMART exporter on the HOST  ^`^t only if you run one on :9633
+  # (Optional) SMART exporter on the HOST only if you run one on :9633
   # With the textfile collector method you don't need this.
   # - job_name: 'smartmon'
   #   static_configs:

@@ -540,3 +540,261 @@ with application data separated into:
 ```text
 /mnt/media/jellyfin/jellyfin-appdata/
 ```
+
+---
+
+## Jellyfin LXC SMB Access Hardening
+
+### Goal
+
+Harden Jellyfin NAS access by replacing the broad SMB mount inside Jellyfin LXC `104` with a dedicated Jellyfin-only SMB share.
+
+Previously, the LXC mounted the broad TrueNAS SMB share:
+
+```text
+//192.168.50.3/misc -> /mnt/media
+```
+
+Jellyfin only needed the Jellyfin media folder:
+
+```text
+/mnt/media/jellyfin
+```
+
+The Docker container mapped that folder into Jellyfin as:
+
+```yaml
+volumes:
+  - /mnt/media/jellyfin:/media
+```
+
+The problem was that even though Docker only exposed `/media` to Jellyfin, the LXC itself still had access to the entire `misc` share.
+
+The goal was to change the LXC mount to a dedicated Jellyfin-only SMB share:
+
+```text
+//192.168.50.3/jellyfin -> /mnt/media/jellyfin
+```
+
+---
+
+### Why This Was Done
+
+The old setup gave the Jellyfin LXC more NAS access than it needed.
+
+Old access path:
+
+```text
+TrueNAS //192.168.50.3/misc
+        ↓
+LXC 104 /mnt/media
+        ↓
+Docker /media
+```
+
+This meant LXC `104` could access unrelated data inside the broader `misc` share, even though Jellyfin only required access to the Jellyfin media directory.
+
+This violated least privilege.
+
+If the Jellyfin LXC or container were compromised, the attacker could potentially browse or modify unrelated NAS data under the broad `misc` share.
+
+The new design narrows the LXC’s NAS access to only the Jellyfin share:
+
+```text
+TrueNAS //192.168.50.3/jellyfin
+        ↓
+LXC 104 /mnt/media/jellyfin
+        ↓
+Docker /media
+```
+
+This reduces the blast radius while preserving Jellyfin functionality.
+
+---
+
+### Container-Side Changes
+
+Entered Jellyfin LXC `104` from the Proxmox host:
+
+```bash
+sudo pct enter 104
+```
+
+Created the Jellyfin mount point inside the LXC:
+
+```bash
+mkdir -p /mnt/media/jellyfin
+```
+
+Created a dedicated SMB credentials directory and credentials file:
+
+```bash
+mkdir -p /root/.smb
+micro /root/.smb/jellyfin.cred
+```
+
+The credentials file stores the dedicated Jellyfin SMB user credentials:
+
+```ini
+username=<REDACTED>
+password=<REDACTED>
+domain=WORKGROUP
+```
+
+Locked down the credentials file:
+
+```bash
+chown root:root /root/.smb/jellyfin.cred
+chmod 600 /root/.smb/jellyfin.cred
+```
+
+---
+
+### fstab Change
+
+Edited the LXC `/etc/fstab`:
+
+```bash
+micro /etc/fstab
+```
+
+The old broad SMB mount was removed or commented out:
+
+```fstab
+# //192.168.50.3/misc  /mnt/media  cifs  credentials=...,uid=0,gid=0,iocharset=utf8,_netdev  0  0
+```
+
+Added the new Jellyfin-only SMB mount:
+
+```fstab
+//192.168.50.3/jellyfin  /mnt/media/jellyfin  cifs  credentials=/root/.smb/jellyfin.cred,uid=0,gid=0,iocharset=utf8,vers=3.0,_netdev,nofail,x-systemd.automount  0  0
+```
+
+The `x-systemd.automount` option was used so the SMB share mounts on demand when the path is accessed. This helps avoid boot-time network ordering issues.
+
+Reloaded systemd and tested the mount:
+
+```bash
+systemctl daemon-reload
+mount -a
+findmnt -t cifs
+```
+
+Expected result:
+
+```text
+//192.168.50.3/jellyfin mounted at /mnt/media/jellyfin
+```
+
+The old broad mount should no longer appear:
+
+```text
+//192.168.50.3/misc
+```
+
+---
+
+### Docker/Jellyfin Configuration
+
+The Jellyfin Docker volume mapping did not need to change.
+
+Existing Docker mapping:
+
+```yaml
+volumes:
+  - /mnt/media/jellyfin:/media
+```
+
+From inside the Jellyfin container, the media path remains:
+
+```text
+/media
+```
+
+Only the backend SMB source changed.
+
+Before:
+
+```text
+TrueNAS //192.168.50.3/misc
+        ↓
+LXC /mnt/media
+        ↓
+Docker /media
+```
+
+After:
+
+```text
+TrueNAS //192.168.50.3/jellyfin
+        ↓
+LXC /mnt/media/jellyfin
+        ↓
+Docker /media
+```
+
+---
+
+### Validation
+
+Confirmed the active CIFS mounts:
+
+```bash
+findmnt -t cifs
+```
+
+Confirmed the Jellyfin media path was accessible from inside the LXC:
+
+```bash
+ls -la /mnt/media/jellyfin
+```
+
+Tested write access because Jellyfin currently writes trickplay and metadata folders inside the media tree:
+
+```bash
+mkdir /mnt/media/jellyfin/smb_test
+rmdir /mnt/media/jellyfin/smb_test
+```
+
+Restarted Jellyfin after confirming the mount:
+
+```bash
+docker restart jellyfin
+```
+
+Verified the Docker bind mount still points to the expected host path:
+
+```bash
+docker inspect jellyfin --format '{{json .Mounts}}'
+```
+
+Expected mapping:
+
+```text
+/mnt/media/jellyfin -> /media
+```
+
+---
+
+### Final Result
+
+Jellyfin LXC `104` no longer mounts the broad TrueNAS share:
+
+```text
+//192.168.50.3/misc
+```
+
+It now mounts only the dedicated Jellyfin SMB share:
+
+```text
+//192.168.50.3/jellyfin
+```
+
+Docker still exposes the media inside the Jellyfin container as:
+
+```text
+/media
+```
+
+This preserves Jellyfin functionality while reducing NAS exposure and aligning the LXC with least-privilege access.
+

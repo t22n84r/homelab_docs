@@ -366,3 +366,177 @@ When everything is configured correctly, the full auto-start chain on Proxmox re
 3. LXC auto-starts → bind mounts attach device nodes into the container
 4. Docker starts inside the LXC (systemd)
 5. Jellyfin container starts automatically (`restart: unless-stopped`)
+
+---
+
+## Jellyfin Config and Cache Migration to Media Share
+
+### Goal
+
+Move Jellyfin’s persistent application data from local LXC storage to the mounted media share so that Jellyfin-related media state, metadata, configuration, and cache live alongside the media share instead of inside the container host’s local `/opt` path.
+
+### Starting State
+
+Jellyfin was running inside Docker in LXC `104`.
+
+The existing Docker mounts were:
+
+```text
+/opt/jellyfin/config -> /config
+/opt/jellyfin/cache  -> /cache
+/mnt/media/jellyfin  -> /media
+```
+
+This meant:
+
+```text
+/config and /cache were stored locally inside the LXC:
+/opt/jellyfin/config
+/opt/jellyfin/cache
+
+Media was stored on the mounted share:
+/mnt/media/jellyfin
+```
+
+### Target State
+
+Move Jellyfin config and cache to:
+
+```text
+/mnt/media/jellyfin/jellyfin-appdata/config
+/mnt/media/jellyfin/jellyfin-appdata/cache
+```
+
+Final desired Docker mounts:
+
+```text
+/mnt/media/jellyfin/jellyfin-appdata/config -> /config
+/mnt/media/jellyfin/jellyfin-appdata/cache  -> /cache
+/mnt/media/jellyfin                         -> /media
+```
+
+### Steps Performed
+
+1. Verified current Jellyfin Docker mounts from the Proxmox host:
+
+```bash
+sudo pct exec 104 -- docker inspect jellyfin --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+```
+
+2. Confirmed Jellyfin was using local LXC paths for config and cache:
+
+```text
+/opt/jellyfin/config -> /config
+/opt/jellyfin/cache -> /cache
+/mnt/media/jellyfin -> /media
+```
+
+3. Created new appdata directories on the media share:
+
+```bash
+sudo pct exec 104 -- mkdir -p /mnt/media/jellyfin/jellyfin-appdata/config
+sudo pct exec 104 -- mkdir -p /mnt/media/jellyfin/jellyfin-appdata/cache
+```
+
+4. Stopped the Jellyfin container before copying data:
+
+```bash
+sudo pct exec 104 -- docker stop jellyfin
+```
+
+5. Attempted to use `rsync`, but `rsync` was not installed inside LXC `104`.
+
+6. Used `cp -a` instead to preserve file attributes while copying the existing Jellyfin data:
+
+```bash
+sudo pct exec 104 -- cp -a /opt/jellyfin/config/. /mnt/media/jellyfin/jellyfin-appdata/config/
+sudo pct exec 104 -- cp -a /opt/jellyfin/cache/. /mnt/media/jellyfin/jellyfin-appdata/cache/
+```
+
+7. Verified the copied directories were populated:
+
+```bash
+sudo pct exec 104 -- sh -c 'find /mnt/media/jellyfin/jellyfin-appdata/config -maxdepth 1 -mindepth 1 | wc -l'
+sudo pct exec 104 -- sh -c 'find /mnt/media/jellyfin/jellyfin-appdata/cache -maxdepth 1 -mindepth 1 | wc -l'
+```
+
+Observed results:
+
+```text
+config: 7 entries
+cache: 5 entries
+```
+
+8. Updated the Jellyfin Docker Compose volume paths.
+
+Original Compose volumes:
+
+```yaml
+volumes:
+  - ./config:/config
+  - ./cache:/cache
+  - /mnt/media/jellyfin:/media
+```
+
+Updated Compose volumes:
+
+```yaml
+volumes:
+  - /mnt/media/jellyfin/jellyfin-appdata/config:/config
+  - /mnt/media/jellyfin/jellyfin-appdata/cache:/cache
+  - /mnt/media/jellyfin:/media
+```
+
+9. Recreated the Jellyfin container using Docker Compose:
+
+```bash
+sudo pct exec 104 -- sh -c 'cd /opt/jellyfin && docker compose up -d'
+```
+
+10. Verified the new mounts:
+
+```bash
+sudo pct exec 104 -- docker inspect jellyfin --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+```
+
+Expected final output:
+
+```text
+/mnt/media/jellyfin/jellyfin-appdata/config -> /config
+/mnt/media/jellyfin/jellyfin-appdata/cache -> /cache
+/mnt/media/jellyfin -> /media
+```
+
+### Rollback Note
+
+The old local directories were intentionally not deleted immediately:
+
+```text
+/opt/jellyfin/config
+/opt/jellyfin/cache
+```
+
+They should be kept temporarily as a rollback backup until Jellyfin is confirmed working normally, including:
+
+```text
+users
+libraries
+metadata
+plugins
+watch history
+media scanning
+```
+
+### Final Result
+
+Jellyfin media, config, metadata, and cache are now intended to be stored under the media share path:
+
+```text
+/mnt/media/jellyfin/
+```
+
+with application data separated into:
+
+```text
+/mnt/media/jellyfin/jellyfin-appdata/
+```

@@ -1,5 +1,7 @@
 # Terraform Proxmox Provider Migration: Telmate to BPG
 
+> **Network status reconciled November 25, 2026.** The core Management/Servers cutover and later IaC reconciliation are complete. Managed-host Ansible connectivity and a full Terraform plan were checked successfully, and both IaC working copies were synchronized. The original hardening/provider-migration steps below remain historical milestone records. See the [network audit record](../projects/network-migration-audit.md).
+
 ## Summary
 
 This document records the migration of a Proxmox Terraform project from the legacy Telmate provider to the BPG Proxmox provider.

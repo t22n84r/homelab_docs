@@ -1,5 +1,7 @@
 # Remote Access Gateway Hardening - Public Documentation
 
+> **Status reconciled November 25, 2026 — historical gateway record.** The gateway VM is currently stopped with autostart disabled. Its VLAN is reconciled, while the provisional client-side address has not been verified in the guest or DHCP reservation. The working-service, tunnel, access-rule, and reboot results below belong to the original milestone. See the [network audit record](../projects/network-migration-audit.md).
+
 ## Overview
 
 This document summarizes the hardening work completed for a dedicated remote access gateway VM. The gateway provides controlled browser-based access to internal systems through Cloudflare Tunnel, Cloudflare Access, and Apache Guacamole.

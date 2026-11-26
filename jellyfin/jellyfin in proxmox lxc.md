@@ -1,5 +1,7 @@
 # Jellyfin on Proxmox LXC with NVIDIA NVENC Hardware Transcoding
 
+> **Address reconciliation — November 25, 2026.** NAS addresses in the examples are placeholders. Use the NAS's current migrated address and verify the live mount before editing it. This guide retains its original setup/recovery history; old single-LAN access assumptions require review against the segmented network.
+
 A complete guide to running Jellyfin in a Docker-based privileged LXC on Proxmox, with NVIDIA GPU passthrough for hardware transcoding.
 
 ---
@@ -552,7 +554,7 @@ Harden Jellyfin NAS access by replacing the broad SMB mount inside Jellyfin LXC 
 Previously, the LXC mounted the broad TrueNAS SMB share:
 
 ```text
-//192.168.50.3/misc -> /mnt/media
+//<NAS_IP>/misc -> /mnt/media
 ```
 
 Jellyfin only needed the Jellyfin media folder:
@@ -573,7 +575,7 @@ The problem was that even though Docker only exposed `/media` to Jellyfin, the L
 The goal was to change the LXC mount to a dedicated Jellyfin-only SMB share:
 
 ```text
-//192.168.50.3/jellyfin -> /mnt/media/jellyfin
+//<NAS_IP>/jellyfin -> /mnt/media/jellyfin
 ```
 
 ---
@@ -585,7 +587,7 @@ The old setup gave the Jellyfin LXC more NAS access than it needed.
 Old access path:
 
 ```text
-TrueNAS //192.168.50.3/misc
+TrueNAS //<NAS_IP>/misc
         ↓
 LXC 104 /mnt/media
         ↓
@@ -601,7 +603,7 @@ If the Jellyfin LXC or container were compromised, the attacker could potentiall
 The new design narrows the LXC’s NAS access to only the Jellyfin share:
 
 ```text
-TrueNAS //192.168.50.3/jellyfin
+TrueNAS //<NAS_IP>/jellyfin
         ↓
 LXC 104 /mnt/media/jellyfin
         ↓
@@ -661,13 +663,13 @@ micro /etc/fstab
 The old broad SMB mount was removed or commented out:
 
 ```fstab
-# //192.168.50.3/misc  /mnt/media  cifs  credentials=...,uid=0,gid=0,iocharset=utf8,_netdev  0  0
+# //<NAS_IP>/misc  /mnt/media  cifs  credentials=...,uid=0,gid=0,iocharset=utf8,_netdev  0  0
 ```
 
 Added the new Jellyfin-only SMB mount:
 
 ```fstab
-//192.168.50.3/jellyfin  /mnt/media/jellyfin  cifs  credentials=/root/.smb/jellyfin.cred,uid=0,gid=0,iocharset=utf8,vers=3.0,_netdev,nofail,x-systemd.automount  0  0
+//<NAS_IP>/jellyfin  /mnt/media/jellyfin  cifs  credentials=/root/.smb/jellyfin.cred,uid=0,gid=0,iocharset=utf8,vers=3.0,_netdev,nofail,x-systemd.automount  0  0
 ```
 
 The `x-systemd.automount` option was used so the SMB share mounts on demand when the path is accessed. This helps avoid boot-time network ordering issues.
@@ -683,13 +685,13 @@ findmnt -t cifs
 Expected result:
 
 ```text
-//192.168.50.3/jellyfin mounted at /mnt/media/jellyfin
+//<NAS_IP>/jellyfin mounted at /mnt/media/jellyfin
 ```
 
 The old broad mount should no longer appear:
 
 ```text
-//192.168.50.3/misc
+//<NAS_IP>/misc
 ```
 
 ---
@@ -716,7 +718,7 @@ Only the backend SMB source changed.
 Before:
 
 ```text
-TrueNAS //192.168.50.3/misc
+TrueNAS //<NAS_IP>/misc
         ↓
 LXC /mnt/media
         ↓
@@ -726,7 +728,7 @@ Docker /media
 After:
 
 ```text
-TrueNAS //192.168.50.3/jellyfin
+TrueNAS //<NAS_IP>/jellyfin
         ↓
 LXC /mnt/media/jellyfin
         ↓
@@ -781,13 +783,13 @@ Expected mapping:
 Jellyfin LXC `104` no longer mounts the broad TrueNAS share:
 
 ```text
-//192.168.50.3/misc
+//<NAS_IP>/misc
 ```
 
 It now mounts only the dedicated Jellyfin SMB share:
 
 ```text
-//192.168.50.3/jellyfin
+//<NAS_IP>/jellyfin
 ```
 
 Docker still exposes the media inside the Jellyfin container as:

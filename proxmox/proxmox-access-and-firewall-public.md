@@ -1,5 +1,7 @@
 # Proxmox Access and Firewall — Public Notes
 
+> **Status reconciled November 25, 2026 — historical gateway record.** The gateway VM is currently stopped with autostart disabled. Its VLAN is reconciled, while the provisional client-side address has not been verified in the guest or DHCP reservation. The working-service, tunnel, access-rule, and reboot results below belong to the original milestone. See the [network audit record](../projects/network-migration-audit.md).
+
 ## Purpose
 
 Document Proxmox access considerations related to the remote access gateway. This is separate from the gateway VM setup and belongs with hypervisor documentation.

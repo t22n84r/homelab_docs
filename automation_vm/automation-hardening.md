@@ -1,5 +1,7 @@
 # Infrastructure Automation Control Node Hardening (Public)
 
+> **Network status reconciled November 25, 2026.** The core Management/Servers cutover and later IaC reconciliation are complete. Managed-host Ansible connectivity and a full Terraform plan were checked successfully, and both IaC working copies were synchronized. The original hardening/provider-migration steps below remain historical milestone records. See the [network audit record](../projects/network-migration-audit.md).
+
 ## Scope
 This document summarizes the hardened design for a dedicated infrastructure automation control node and its Proxmox-side automation access path.
 

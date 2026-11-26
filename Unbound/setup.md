@@ -1,5 +1,7 @@
 DNSSEC validation, aggressive caching, prefetching
 
+> **Archived DNS deployment — reviewed November 25, 2026.** Pi-hole/Unbound has been retired; these setup, hardening, and upgrade instructions describe the former deployment. Local DNS is now managed in UniFi. See the [network audit record](../projects/network-migration-audit.md).
+
 Robust hardening (qname minimisation, NXDOMAIN harden, etc.)
 
 Generous caches/threads (uses ~400–600 MB RAM comfortably on a 2 GiB Pi 4)

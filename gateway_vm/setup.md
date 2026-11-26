@@ -1,5 +1,7 @@
 # Remote Access Gateway VM Setup — Public Notes
 
+> **Status reconciled November 25, 2026 — historical gateway record.** The gateway VM is currently stopped with autostart disabled. Its VLAN is reconciled, while the provisional client-side address has not been verified in the guest or DHCP reservation. The working-service, tunnel, access-rule, and reboot results below belong to the original milestone. See the [network audit record](../projects/network-migration-audit.md).
+
 ## Purpose
 
 Build a dedicated remote-access gateway VM to provide browser-based access to internal systems without exposing home network services directly to the internet.

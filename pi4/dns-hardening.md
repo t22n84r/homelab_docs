@@ -1,5 +1,7 @@
 # Raspberry Pi 4 DNS Server Hardening Record
 
+> **Archived DNS deployment — reviewed November 25, 2026.** Pi-hole/Unbound has been retired; these setup, hardening, and upgrade instructions describe the former deployment. Local DNS is now managed in UniFi. See the [network audit record](../projects/network-migration-audit.md).
+
 ## Overview
 
 Dedicated Raspberry Pi 4 hardened for DNS infrastructure use.

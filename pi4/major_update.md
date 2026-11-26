@@ -1,5 +1,7 @@
 # Raspberry Pi Bookworm Recovery Record
 
+> **Archived DNS deployment — reviewed November 25, 2026.** Pi-hole/Unbound has been retired; these setup, hardening, and upgrade instructions describe the former deployment. Local DNS is now managed in UniFi. See the [network audit record](../projects/network-migration-audit.md).
+
 This document records the full recovery of a Raspberry Pi after an in-place Raspberry Pi OS upgrade left the system in a mixed Bullseye/Bookworm state.
 
 ## Table of Contents
